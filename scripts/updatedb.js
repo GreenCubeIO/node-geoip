@@ -432,21 +432,24 @@ function processData(database, cb) {
 	}
 }
 
-rimraf(tmpPath);
-mkdir(tmpPath);
+function doUpdate( callback ){
+  rimraf(tmpPath);
+  mkdir(tmpPath);
 
-async.eachSeries(databases, function(database, nextDatabase) {
+  async.eachSeries(databases, function(database, nextDatabase) {
+    async.seq(fetch, extract, processData)(database, nextDatabase);
+  }, function(err) {
+    if (err) {
+      console.log('Failed to Update Databases from MaxMind.'.red);
+    } else {
+      console.log('Successfully Updated Databases from MaxMind.'.green);
+      if (process.argv[2]=='debug') console.log('Notice: temporary files are not deleted for debug purposes.'.bold.yellow);
+      else rimraf(tmpPath);
+    }
 
-	async.seq(fetch, extract, processData)(database, nextDatabase);
+    callback( err );
+  });
+}
 
-}, function(err) {
-	if (err) {
-		console.log('Failed to Update Databases from MaxMind.'.red);
-		process.exit(1);
-	} else {
-		console.log('Successfully Updated Databases from MaxMind.'.green);
-		if (process.argv[2]=='debug') console.log('Notice: temporary files are not deleted for debug purposes.'.bold.yellow);
-		else rimraf(tmpPath);
-		process.exit(0);
-	}
-});
+
+exports.update = doUpdate;
